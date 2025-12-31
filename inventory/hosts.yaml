@@ -6,4 +6,5 @@ all:
         uptime-pi:
           ansible_host: 192.168.0.66
           ansible_user: pi
+          ansible_python_interpreter: /usr/bin/python3
           domain: uptime-staging.makerspace-gt.de

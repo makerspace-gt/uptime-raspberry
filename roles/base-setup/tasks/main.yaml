@@ -42,7 +42,7 @@
 
     - name: Add azlux repository
       apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ {{ ansible_distribution_release }} main"
+        repo: "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ {{ ansible_facts.distribution_release }} main"
         state: present
         filename: azlux
 

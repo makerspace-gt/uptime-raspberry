@@ -5,6 +5,7 @@ roles/weareinteractive.apt/
 # Ansible
 *.retry
 .ansible/
+.claude/
 
 # Python
 __pycache__/
