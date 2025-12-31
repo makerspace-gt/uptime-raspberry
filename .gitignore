@@ -1,0 +1,36 @@
+# Ansible Galaxy roles (installed via requirements)
+roles/nickjj.docker/
+roles/weareinteractive.apt/
+
+# Ansible
+*.retry
+.ansible/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*secret*
+*password*
+*.key
+*.pem
+inventory/vault.yaml
+.vault_pass
+*vault*

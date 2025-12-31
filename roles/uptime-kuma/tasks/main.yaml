@@ -1,0 +1,28 @@
+---
+- name: Create Uptime Kuma directory
+  file:
+    path: /opt/uptime-kuma
+    state: directory
+    mode: "0755"
+
+- name: Deploy Uptime Kuma container
+  community.docker.docker_container:
+    name: uptime-kuma
+    image: louislam/uptime-kuma:1
+    state: started
+    restart_policy: always
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - /opt/uptime-kuma:/app/data
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+
+- name: Wait for Uptime Kuma to be ready
+  wait_for:
+    host: 127.0.0.1
+    port: 3001
+    delay: 5
+    timeout: 60

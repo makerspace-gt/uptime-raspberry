@@ -1,0 +1,38 @@
+---
+- name: Create Caddy directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /opt/caddy
+    - /opt/caddy/data
+
+- name: Deploy Caddyfile from template
+  template:
+    src: Caddyfile.j2
+    dest: /opt/caddy/Caddyfile
+    mode: "0644"
+  notify: Restart Caddy
+
+- name: Deploy Caddy container
+  community.docker.docker_container:
+    name: caddy
+    image: caddy:2-alpine
+    state: started
+    restart_policy: always
+    network_mode: host
+    volumes:
+      - /opt/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/caddy/data:/data
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+
+- name: Wait for Caddy to be ready
+  wait_for:
+    host: 127.0.0.1
+    port: 80
+    delay: 5
+    timeout: 60

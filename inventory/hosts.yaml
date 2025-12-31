@@ -1,0 +1,9 @@
+---
+all:
+  children:
+    monitoring:
+      hosts:
+        uptime-pi:
+          ansible_host: 192.168.0.66
+          ansible_user: pi
+          domain: uptime-staging.makerspace-gt.de

@@ -1,0 +1,53 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install essential packages
+  apt:
+    name:
+      - vim
+      - git
+      - curl
+      - htop
+      - ncdu
+      - rsync
+    state: present
+
+- name: Reduce SD card wear - disable swap
+  block:
+    - name: Stop swap
+      command: dphys-swapfile swapoff
+      ignore_errors: true
+
+    - name: Uninstall swap
+      command: dphys-swapfile uninstall
+      ignore_errors: true
+
+    - name: Disable swap service
+      systemd:
+        name: dphys-swapfile
+        enabled: no
+        state: stopped
+      ignore_errors: true
+
+- name: Install log2ram for SD card longevity
+  block:
+    - name: Add azlux GPG key
+      get_url:
+        url: https://azlux.fr/repo.gpg
+        dest: /usr/share/keyrings/azlux-archive-keyring.gpg
+        mode: "0644"
+
+    - name: Add azlux repository
+      apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ {{ ansible_distribution_release }} main"
+        state: present
+        filename: azlux
+
+    - name: Install log2ram
+      apt:
+        name: log2ram
+        state: present
+        update_cache: true

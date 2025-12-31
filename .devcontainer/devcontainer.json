@@ -1,0 +1,10 @@
+{
+  "name": "UptimeKuma Ansible",
+  "image": "mcr.microsoft.com/devcontainers/python:3.13-bookworm",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/ansible:2": {},
+    "ghcr.io/devcontainers-extra/features/neovim-homebrew:1": {}
+  },
+  "postCreateCommand": "ansible-galaxy install -r .devcontainer/ansible-galaxy-requirements.yaml",
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}"
+}
