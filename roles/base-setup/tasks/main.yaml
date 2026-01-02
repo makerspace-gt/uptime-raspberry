@@ -17,19 +17,29 @@
 
 - name: Reduce SD card wear - disable swap
   block:
-    - name: Stop swap
+    - name: Check if dphys-swapfile exists
+      stat:
+        path: /usr/sbin/dphys-swapfile
+      register: dphys_swapfile_binary
+
+    - name: Stop swap (old method)
       command: dphys-swapfile swapoff
+      when: dphys_swapfile_binary.stat.exists
       ignore_errors: true
 
-    - name: Uninstall swap
+    - name: Uninstall swap (old method)
       command: dphys-swapfile uninstall
+      when: dphys_swapfile_binary.stat.exists
       ignore_errors: true
 
-    - name: Disable swap service
+    - name: Disable swap via systemd (modern method)
       systemd:
-        name: dphys-swapfile
-        enabled: no
-        state: stopped
+        name: swap.target
+        masked: true
+      ignore_errors: true
+
+    - name: Turn off all swap
+      command: swapoff -a
       ignore_errors: true
 
 - name: Install log2ram for SD card longevity
@@ -42,7 +52,7 @@
 
     - name: Add azlux repository
       apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ {{ ansible_facts.distribution_release }} main"
+        repo: "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ bookworm main"
         state: present
         filename: azlux
 

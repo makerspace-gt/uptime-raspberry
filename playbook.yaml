@@ -11,6 +11,15 @@
       with_items:
         - en_US.UTF-8
         - de_DE.UTF-8
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+    - name: Ensure hostname is in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1'
+        line: "127.0.1.1 {{ inventory_hostname }}"
+        state: present
 
     - name: Set timezone to Europe/Berlin
       community.general.timezone:
@@ -50,4 +59,5 @@
 
     - role: uptime-kuma
 
-    - role: caddy
+    # not in use with tailscale funnel
+    #- role: caddy

@@ -2,24 +2,18 @@
     reverse_proxy localhost:3001
     
     # Automatic HTTPS via Let's Encrypt
-    # Email for Let's Encrypt notifications
     tls {{ letsencrypt_email }}
     
     # Security headers
     header {
-        # Enable HSTS
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        # Prevent MIME sniffing
         X-Content-Type-Options "nosniff"
-        # Clickjacking protection
         X-Frame-Options "SAMEORIGIN"
-        # XSS protection
         X-XSS-Protection "1; mode=block"
-        # Referrer policy
         Referrer-Policy "strict-origin-when-cross-origin"
     }
     
-    # Access logging
+    # Logging
     log {
         output file /data/access.log {
             roll_size 10mb
@@ -29,7 +23,6 @@
         format json
     }
     
-    # Error logging
     log {
         output file /data/error.log {
             roll_size 10mb

@@ -17,6 +17,12 @@
     state: present
     update_cache: yes
 
+- name: Enable and start tailscaled service
+  systemd:
+    name: tailscaled
+    enabled: yes
+    state: started
+
 - name: Display manual Tailscale setup instructions
   debug:
     msg: |

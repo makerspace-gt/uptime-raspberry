@@ -1,11 +1,11 @@
 # UptimeKuma auf Raspberry Pi
 
-UptimeKuma auf einem Raspberry Pi (B+ V1.2), unabhängig von den anderen Diensten.
+UptimeKuma auf einem Raspberry Pi 5, unabhängig von den anderen Diensten.
 
 ## Installation
 
-Da Version B+ 1.2, muss Pi OS Legacy Lite genutzt werden (32-bit). 
-Nachdem das Image auf die SD-Karte geschrieben wurde, nicht vergessen, ssh zu aktivieren und einen Nutzer zu erstellen. 
+Pi OS downloaden, unxz.
+Nachdem das Image mit dd auf die SD-Karte geschrieben wurde, nicht vergessen, ssh zu aktivieren und einen Nutzer zu erstellen. 
 
 ## Ansible-Setup
 Passwort-Datei erstellen (`.vault_pass`). 
