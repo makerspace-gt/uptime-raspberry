@@ -1,0 +1,29 @@
+#!/bin/bash
+set -euo pipefail
+
+RCLONE_CONFIG="{{ backup_scripts_dir }}/rclone.conf"
+LOG="{{ backup_log_dir }}/sync-$(date +%Y%m%d-%H%M%S).log"
+
+echo "Backup sync started at $(date)" | tee "$LOG"
+
+if ! rclone sync \
+    --config "$RCLONE_CONFIG" \
+    --transfers {{ backup_rclone_transfers }} \
+    --checkers {{ backup_rclone_checkers }} \
+    --max-delete {{ backup_rclone_max_delete }} \
+    --log-level INFO \
+    --log-file "$LOG" \
+    "storagebox:." \
+    "{{ backup_mount_point }}/"; then
+    echo "ERROR: rclone sync failed" | tee -a "$LOG"
+
+    echo "Backup sync failed on $(hostname). See $LOG" | \
+        mail -s "[ALERT] Backup sync failure on $(hostname)" {{ backup_alert_email }}
+
+    exit 1
+fi
+
+echo "Backup sync finished at $(date)" | tee -a "$LOG"
+
+# Clean up old logs (keep 30 days)
+find "{{ backup_log_dir }}" -name "sync-*.log" -mtime +30 -delete

@@ -1,0 +1,19 @@
+---
+backup_mount_point: /mnt/backup
+backup_fs_type: ext4
+backup_mount_options: "defaults,nofail,noatime"
+
+backup_sync_schedule: "*-*-* 03:00:00"
+backup_check_schedule: "Sun *-*-* 05:00:00"
+
+backup_storagebox_port: 23
+
+backup_scripts_dir: /opt/backup-sync
+backup_log_dir: /var/log/backup-sync
+
+backup_rclone_transfers: 2
+backup_rclone_checkers: 2
+backup_rclone_max_delete: 100
+
+backup_restic_bin: /usr/bin/restic
+backup_restic_read_data_subset: "25%"

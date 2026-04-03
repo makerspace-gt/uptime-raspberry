@@ -1,0 +1,182 @@
+---
+# --- Packages ---
+
+- name: Preconfigure msmtp-mta to skip AppArmor prompt
+  ansible.builtin.debconf:
+    name: msmtp-mta
+    question: msmtp-mta/apparmor
+    value: "false"
+    vtype: boolean
+  tags: [backup-sync, backup-check]
+
+- name: Install backup packages
+  ansible.builtin.apt:
+    name:
+      - rclone
+      - restic
+      - msmtp
+      - msmtp-mta
+      - mailutils
+    state: present
+    update_cache: true
+  tags: [backup-mount, backup-sync, backup-check]
+
+# --- Drive Mount ---
+
+- name: Create backup mount point
+  ansible.builtin.file:
+    path: "{{ backup_mount_point }}"
+    state: directory
+    mode: "0755"
+  tags: backup-mount
+
+- name: Mount backup drive via fstab (UUID)
+  ansible.posix.mount:
+    path: "{{ backup_mount_point }}"
+    src: "UUID={{ backup_drive_uuid }}"
+    fstype: "{{ backup_fs_type }}"
+    opts: "{{ backup_mount_options }}"
+    state: mounted
+  tags: backup-mount
+
+# --- Scripts directory + SSH key ---
+
+- name: Create backup scripts directory
+  ansible.builtin.file:
+    path: "{{ backup_scripts_dir }}"
+    state: directory
+    mode: "0700"
+  tags: [backup-sync, backup-check]
+
+- name: Deploy storage box SSH private key
+  ansible.builtin.copy:
+    content: "{{ backup_storagebox_ssh_key }}"
+    dest: "{{ backup_scripts_dir }}/storagebox_key"
+    mode: "0600"
+  tags: backup-sync
+
+- name: Deploy restic password file
+  ansible.builtin.copy:
+    content: "{{ backup_restic_password }}"
+    dest: "{{ backup_scripts_dir }}/restic_password"
+    mode: "0600"
+  tags: backup-check
+
+- name: Deploy rclone configuration
+  ansible.builtin.template:
+    src: rclone.conf.j2
+    dest: "{{ backup_scripts_dir }}/rclone.conf"
+    mode: "0600"
+  tags: backup-sync
+
+# --- msmtp ---
+
+- name: Deploy msmtp configuration
+  ansible.builtin.template:
+    src: msmtprc.j2
+    dest: /etc/msmtprc
+    mode: "0600"
+  tags: [backup-sync, backup-check]
+
+# --- Log directory ---
+
+- name: Create log directory
+  ansible.builtin.file:
+    path: "{{ backup_log_dir }}"
+    state: directory
+    mode: "0755"
+  tags: [backup-sync, backup-check]
+
+# --- Sync script + timer ---
+
+- name: Deploy backup sync script
+  ansible.builtin.template:
+    src: backup-sync.sh.j2
+    dest: "{{ backup_scripts_dir }}/backup-sync.sh"
+    mode: "0700"
+  tags: backup-sync
+
+- name: Deploy backup sync systemd service
+  ansible.builtin.template:
+    src: backup-sync.service.j2
+    dest: /etc/systemd/system/backup-sync.service
+    mode: "0644"
+  notify: Reload systemd
+  tags: backup-sync
+
+- name: Deploy backup sync systemd timer
+  ansible.builtin.template:
+    src: backup-sync.timer.j2
+    dest: /etc/systemd/system/backup-sync.timer
+    mode: "0644"
+  notify: Reload systemd
+  tags: backup-sync
+
+- name: Flush handlers before enabling timers
+  ansible.builtin.meta: flush_handlers
+  tags: [backup-sync, backup-check]
+
+- name: Enable and start backup sync timer
+  ansible.builtin.systemd:
+    name: backup-sync.timer
+    enabled: true
+    state: started
+  tags: backup-sync
+
+# --- Check script + timer ---
+
+- name: Deploy backup check script
+  ansible.builtin.template:
+    src: backup-check.sh.j2
+    dest: "{{ backup_scripts_dir }}/backup-check.sh"
+    mode: "0700"
+  tags: backup-check
+
+- name: Deploy backup check systemd service
+  ansible.builtin.template:
+    src: backup-check.service.j2
+    dest: /etc/systemd/system/backup-check.service
+    mode: "0644"
+  notify: Reload systemd
+  tags: backup-check
+
+- name: Deploy backup check systemd timer
+  ansible.builtin.template:
+    src: backup-check.timer.j2
+    dest: /etc/systemd/system/backup-check.timer
+    mode: "0644"
+  notify: Reload systemd
+  tags: backup-check
+
+- name: Flush handlers before enabling check timer
+  ansible.builtin.meta: flush_handlers
+  tags: backup-check
+
+- name: Enable and start backup check timer
+  ansible.builtin.systemd:
+    name: backup-check.timer
+    enabled: true
+    state: started
+  tags: backup-check
+
+# --- Post-install reminder ---
+
+- name: Display post-install instructions
+  ansible.builtin.debug:
+    msg: |
+      Backup sync role installed!
+
+      Manual steps:
+      1. Ensure the USB drive is connected and formatted:
+         sudo mkfs.ext4 /dev/sdX1
+         Get UUID with: sudo blkid
+         Update backup_drive_uuid in inventory/hosts.yaml
+      2. Add the SSH public key to the Hetzner Storage Box:
+         Generate keypair if needed: ssh-keygen -t ed25519 -f storagebox_key
+         Upload public key via Hetzner Robot panel
+      3. Test sync manually:
+         sudo {{ backup_scripts_dir }}/backup-sync.sh
+      4. Test check manually:
+         sudo {{ backup_scripts_dir }}/backup-check.sh
+      5. Verify timers:
+         systemctl list-timers backup-*

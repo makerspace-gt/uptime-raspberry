@@ -67,7 +67,7 @@
   wait_for:
     timeout: 5
   delegate_to: localhost
-  
+
 - name: Disable password authentication for SSH
   lineinfile:
     path: /etc/ssh/sshd_config

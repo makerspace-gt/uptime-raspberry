@@ -28,10 +28,6 @@ venv/
 Thumbs.db
 
 # Secrets
-*secret*
-*password*
 *.key
 *.pem
-inventory/vault.yaml
 .vault_pass
-*vault*

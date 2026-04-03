@@ -53,11 +53,8 @@
 
     - role: tailscale
 
-    - role: security
-
     - role: nickjj.docker
 
     - role: uptime-kuma
 
-    # not in use with tailscale funnel
-    #- role: caddy
+    - role: backup-sync

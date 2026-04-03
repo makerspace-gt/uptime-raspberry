@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly backup integrity check timer
+
+[Timer]
+OnCalendar={{ backup_check_schedule }}
+Persistent=true
+RandomizedDelaySec=1800
+
+[Install]
+WantedBy=timers.target

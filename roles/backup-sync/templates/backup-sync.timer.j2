@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily backup sync timer
+
+[Timer]
+OnCalendar={{ backup_sync_schedule }}
+Persistent=true
+RandomizedDelaySec=900
+
+[Install]
+WantedBy=timers.target

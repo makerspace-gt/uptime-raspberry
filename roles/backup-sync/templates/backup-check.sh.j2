@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+
+LOG="{{ backup_log_dir }}/check-$(date +%Y%m%d-%H%M%S).log"
+
+echo "Backup check started at $(date)" | tee "$LOG"
+
+export RESTIC_REPOSITORY="{{ backup_mount_point }}"
+export RESTIC_PASSWORD_FILE="{{ backup_scripts_dir }}/restic_password"
+
+if ! {{ backup_restic_bin }} check --read-data-subset={{ backup_restic_read_data_subset }} >> "$LOG" 2>&1; then
+    echo "ERROR: restic check failed" | tee -a "$LOG"
+
+    printf "Backup integrity check FAILED on %s\n\nFull log: %s\n" \
+        "$(hostname)" "$LOG" | \
+        mail -s "[ALERT] Backup check failure on $(hostname)" {{ backup_alert_email }}
+
+    exit 1
+fi
+
+unset RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
+
+echo "Backup check finished at $(date)" | tee -a "$LOG"
+
+# Clean up old logs (keep 30 days)
+find "{{ backup_log_dir }}" -name "check-*.log" -mtime +30 -delete

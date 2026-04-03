@@ -1,0 +1,10 @@
+account default
+host {{ backup_smtp_host }}
+port {{ backup_smtp_port }}
+from {{ backup_smtp_from }}
+auth on
+user {{ backup_smtp_user }}
+password {{ backup_smtp_password }}
+tls on
+tls_starttls on
+logfile /var/log/msmtp.log

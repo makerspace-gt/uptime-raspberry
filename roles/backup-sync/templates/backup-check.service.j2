@@ -1,0 +1,11 @@
+[Unit]
+Description=Check restic backup integrity
+RequiresMountsFor={{ backup_mount_point }}
+After=backup-sync.service
+
+[Service]
+Type=oneshot
+ExecStart={{ backup_scripts_dir }}/backup-check.sh
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=43200

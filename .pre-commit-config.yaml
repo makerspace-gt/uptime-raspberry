@@ -1,0 +1,36 @@
+# See https://pre-commit.com for more information
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: ^group_vars/all/vault\.yaml$
+
+  # YAML validation
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.37.0
+    hooks:
+      - id: yamllint
+        args: ["-c", ".yamllint"]
+
+  # Ansible vault check - prevent committing unencrypted vault files
+  - repo: local
+    hooks:
+      - id: check-ansible-vault
+        name: Check Ansible vault files are encrypted
+        entry: .devcontainer/check-vault-encrypted.sh
+        language: script
+        files: vault\.yaml$

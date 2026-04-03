@@ -1,0 +1,10 @@
+[Unit]
+Description=Sync restic backups from Hetzner Storage Box
+RequiresMountsFor={{ backup_mount_point }}
+
+[Service]
+Type=oneshot
+ExecStart={{ backup_scripts_dir }}/backup-sync.sh
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=14400
