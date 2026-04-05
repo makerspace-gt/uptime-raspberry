@@ -13,7 +13,7 @@ backup_log_dir: /var/log/backup-sync
 
 backup_rclone_transfers: 2
 backup_rclone_checkers: 2
-backup_rclone_max_delete: 100
+backup_rclone_max_delete_size: "50G"
 
 backup_restic_bin: /usr/bin/restic
 backup_restic_read_data_subset: "25%"

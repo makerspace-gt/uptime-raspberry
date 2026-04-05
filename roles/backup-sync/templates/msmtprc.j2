@@ -8,3 +8,7 @@ password {{ backup_smtp_password }}
 tls on
 tls_starttls on
 logfile /var/log/msmtp.log
+
+auto_from off
+set_from_header on
+allow_from_override off

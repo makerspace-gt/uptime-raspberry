@@ -10,7 +10,7 @@ if ! rclone sync \
     --config "$RCLONE_CONFIG" \
     --transfers {{ backup_rclone_transfers }} \
     --checkers {{ backup_rclone_checkers }} \
-    --max-delete {{ backup_rclone_max_delete }} \
+    --max-delete-size {{ backup_rclone_max_delete_size }} \
     --log-level INFO \
     --log-file "$LOG" \
     "storagebox:." \
