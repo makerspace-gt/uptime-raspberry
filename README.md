@@ -4,6 +4,7 @@
 - [ ] Uptime Kuma Push-Monitor als zusätzlichen Alerting-Kanal für Backup-Sync und Restic-Check einrichten
 
 UptimeKuma auf einem Raspberry Pi 5, unabhängig von den anderen Diensten.
+Auch: Off-site backup über `rclone sync` von Storagebox. 
 
 ## Installation
 
