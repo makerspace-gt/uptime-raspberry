@@ -4,7 +4,7 @@ backup_fs_type: ext4
 backup_mount_options: "defaults,nofail,noatime"
 
 backup_sync_schedule: "*-*-* 03:00:00"
-backup_check_schedule: "Sun *-*-* 05:00:00"
+backup_check_schedule: "*-*-* 05:00:00"
 
 backup_storagebox_port: 23
 
@@ -16,4 +16,4 @@ backup_rclone_checkers: 2
 backup_rclone_max_delete_size: "50G"
 
 backup_restic_bin: /usr/bin/restic
-backup_restic_read_data_subset: "25%"
+backup_restic_read_data_subset: "20%"

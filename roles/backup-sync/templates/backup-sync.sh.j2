@@ -11,6 +11,7 @@ if ! rclone sync \
     --transfers {{ backup_rclone_transfers }} \
     --checkers {{ backup_rclone_checkers }} \
     --max-delete-size {{ backup_rclone_max_delete_size }} \
+    --exclude "/locks/**" \
     --log-level INFO \
     --log-file "$LOG" \
     "storagebox:." \
