@@ -1,0 +1,9 @@
+[Unit]
+Description=Trigger lima-city WordPress backups remotely
+
+[Service]
+Type=oneshot
+ExecStart={{ lima_city_trigger_dir }}/trigger.sh
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=7200

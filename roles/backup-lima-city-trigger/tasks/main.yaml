@@ -1,0 +1,80 @@
+---
+- name: Create trigger scripts directory
+  ansible.builtin.file:
+    path: "{{ lima_city_trigger_dir }}"
+    state: directory
+    mode: "0700"
+  tags: lima-city-trigger
+
+- name: Create trigger log directory
+  ansible.builtin.file:
+    path: "{{ lima_city_trigger_log_dir }}"
+    state: directory
+    mode: "0755"
+  tags: lima-city-trigger
+
+- name: Deploy lima-city SSH private key
+  ansible.builtin.copy:
+    content: "{{ lima_city_ssh_private_key }}"
+    dest: "{{ lima_city_trigger_dir }}/lima_city_key"
+    mode: "0600"
+  no_log: true
+  tags: lima-city-trigger
+
+- name: Scan lima-city SSH host key into known_hosts
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ssh-keyscan -p {{ lima_city_remote_port }} {{ lima_city_remote_host }} > {{ lima_city_trigger_dir }}/known_hosts.new
+    mv {{ lima_city_trigger_dir }}/known_hosts.new {{ lima_city_trigger_dir }}/known_hosts
+    chmod 0644 {{ lima_city_trigger_dir }}/known_hosts
+  args:
+    creates: "{{ lima_city_trigger_dir }}/known_hosts"
+  tags: lima-city-trigger
+
+- name: Deploy lima-city trigger script
+  ansible.builtin.template:
+    src: trigger.sh.j2
+    dest: "{{ lima_city_trigger_dir }}/trigger.sh"
+    mode: "0700"
+  tags: lima-city-trigger
+
+- name: Deploy lima-city backup systemd service
+  ansible.builtin.template:
+    src: lima-city-backup.service.j2
+    dest: /etc/systemd/system/lima-city-backup.service
+    mode: "0644"
+  notify: Reload systemd
+  tags: lima-city-trigger
+
+- name: Deploy lima-city backup systemd timer
+  ansible.builtin.template:
+    src: lima-city-backup.timer.j2
+    dest: /etc/systemd/system/lima-city-backup.timer
+    mode: "0644"
+  notify: Reload systemd
+  tags: lima-city-trigger
+
+- name: Flush handlers before enabling timer
+  ansible.builtin.meta: flush_handlers
+  tags: lima-city-trigger
+
+- name: Enable and start lima-city backup timer
+  ansible.builtin.systemd:
+    name: lima-city-backup.timer
+    enabled: true
+    state: started
+  tags: lima-city-trigger
+
+- name: Display post-install instructions
+  ansible.builtin.debug:
+    msg: |
+      backup-lima-city-trigger role installed.
+
+      Manual verification:
+        sudo systemctl list-timers lima-city-backup.timer
+        sudo systemctl start lima-city-backup.service
+        sudo tail -f /var/log/lima-city-backup/trigger-*.log
+
+      Prerequisite: the Pi's public key (derived from {{ lima_city_trigger_dir }}/lima_city_key)
+      must already be in {{ lima_city_remote_user }}@{{ lima_city_remote_host }}:~/.ssh/authorized_keys.
+  tags: lima-city-trigger

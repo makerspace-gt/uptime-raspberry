@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+
+LOG="{{ lima_city_trigger_log_dir }}/trigger-$(date +%Y%m%d-%H%M%S).log"
+
+echo "lima-city backup trigger started at $(date)" | tee "$LOG"
+
+if ! ssh \
+        -i {{ lima_city_trigger_dir }}/lima_city_key \
+        -p {{ lima_city_remote_port }} \
+        -o BatchMode=yes \
+        -o StrictHostKeyChecking=yes \
+        -o UserKnownHostsFile={{ lima_city_trigger_dir }}/known_hosts \
+        {{ lima_city_remote_user }}@{{ lima_city_remote_host }} \
+        '{{ lima_city_remote_script }}' 2>&1 | tee -a "$LOG"; then
+    echo "ERROR: lima-city backup trigger failed" | tee -a "$LOG"
+
+    echo "lima-city backup failed on $(hostname). See $LOG" | \
+        mail -s "[ALERT] lima-city backup failure" {{ backup_alert_email }}
+
+    exit 1
+fi
+
+echo "lima-city backup finished at $(date)" | tee -a "$LOG"
+
+find "{{ lima_city_trigger_log_dir }}" -name 'trigger-*.log' -mtime +30 -delete

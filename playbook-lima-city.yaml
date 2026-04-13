@@ -1,0 +1,67 @@
+---
+- name: Render lima-city backup artifacts locally
+  hosts: localhost
+  gather_facts: false
+  become: false
+  vars_files:
+    - lima-city/sites.vault.yaml
+    - group_vars/all/vault.yaml
+
+  tasks:
+    - name: Ensure build directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/lima-city/build"
+        state: directory
+        mode: "0700"
+
+    - name: Render backup script
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/lima-city/backup.sh.j2"
+        dest: "{{ playbook_dir }}/lima-city/build/backup.sh"
+        mode: "0755"
+
+    - name: Render SSH config snippet
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/lima-city/ssh_config.j2"
+        dest: "{{ playbook_dir }}/lima-city/build/ssh_config"
+        mode: "0600"
+
+    - name: Render restic password file
+      ansible.builtin.copy:
+        content: "{{ backup_restic_password }}\n"
+        dest: "{{ playbook_dir }}/lima-city/build/restic_pw"
+        mode: "0600"
+      no_log: true
+
+    - name: Display manual deploy steps
+      ansible.builtin.debug:
+        msg: |
+          Artifacts rendered to lima-city/build/.
+
+          Deploy updated backup script to lima-city:
+            scp -P 22 lima-city/build/backup.sh makerspace-gt@makerspace-gt.lima-ssh.de:bin/backup.sh
+
+          (First-time only) also deploy restic_pw and ssh_config:
+            scp -P 22 lima-city/build/restic_pw  makerspace-gt@makerspace-gt.lima-ssh.de:restic_pw
+            scp -P 22 lima-city/build/ssh_config makerspace-gt@makerspace-gt.lima-ssh.de:storagebox_ssh_config
+            # then on lima-city:
+            chmod 0600 ~/restic_pw ~/storagebox_ssh_config
+            cat ~/storagebox_ssh_config >> ~/.ssh/config
+            rm ~/storagebox_ssh_config
+
+          (First-time only) install restic {{ lima_city_restic_version }} on lima-city:
+            mkdir -p ~/bin ~/logs ~/tmp
+            cd ~/tmp
+            curl -fsSL -o restic.bz2 \
+              https://github.com/restic/restic/releases/download/v{{ lima_city_restic_version }}/restic_{{ lima_city_restic_version }}_linux_amd64.bz2
+            bunzip2 -f restic.bz2
+            mv restic ~/bin/restic && chmod 0755 ~/bin/restic
+            ~/bin/restic version   # must print {{ lima_city_restic_version }}
+
+          Verify repo access on lima-city:
+            ~/bin/restic -r sftp:{{ lima_city_storagebox_alias }}:. --password-file ~/restic_pw snapshots --host {{ lima_city_restic_host_tag }}
+
+          The backup is triggered from the Pi via the backup-lima-city-trigger
+          role (systemd timer at 01:00 daily). Trigger a manual run:
+            sudo systemctl start lima-city-backup.service
+            sudo tail -f /var/log/lima-city-backup/trigger-*.log

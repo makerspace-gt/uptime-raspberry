@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily lima-city backup trigger timer
+
+[Timer]
+OnCalendar={{ lima_city_trigger_schedule }}
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

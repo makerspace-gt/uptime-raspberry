@@ -31,3 +31,5 @@ Thumbs.db
 *.key
 *.pem
 .vault_pass
+lima-city/build/
+restic_pw

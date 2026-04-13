@@ -139,16 +139,28 @@ echo -e "${c_bold}Backup Statistics — last ${DAYS} days${c_reset}"
 echo "Log directory: ${LOG_DIR}"
 echo ""
 
+echo -e "${c_bold}── Repository contents (latest snapshot per host/tags) ──────────${c_reset}"
+RESTIC_PW=/opt/backup-sync/restic_password
+RESTIC_REPO=/mnt/backup
+if command -v restic >/dev/null 2>&1 && [ -r "$RESTIC_PW" ]; then
+    restic -r "$RESTIC_REPO" --password-file "$RESTIC_PW" \
+        snapshots --latest 1 --group-by host,tags --compact 2>/dev/null \
+        || echo "  (failed to query restic repo at $RESTIC_REPO)"
+else
+    echo "  (restic or $RESTIC_PW unreadable — run this script as root)"
+fi
+echo ""
+
 print_section "sync"  "rclone Sync"
 print_section "check" "restic Check"
 
 echo -e "${c_bold}── Timer status ──────────────────────────────────────────────────${c_reset}"
-systemctl list-timers backup-sync.timer backup-check.timer --no-pager 2>/dev/null || \
+systemctl list-timers backup-sync.timer backup-check.timer lima-city-backup.timer --no-pager 2>/dev/null || \
     echo "  (systemctl not available or timers not found)"
 echo ""
 
 echo -e "${c_bold}── Last journal entries ──────────────────────────────────────────${c_reset}"
-journalctl -u backup-sync.service -u backup-check.service \
+journalctl -u backup-sync.service -u backup-check.service -u lima-city-backup.service \
     --since "$(date -d "-${DAYS} days" '+%Y-%m-%d')" \
     --no-pager -q --output=short-iso 2>/dev/null | tail -30 || \
     echo "  (journal unavailable)"

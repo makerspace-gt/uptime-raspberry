@@ -1,0 +1,51 @@
+#!/bin/bash
+set -euo pipefail
+
+export PATH="/usr/local/bin:/usr/bin:/bin:$HOME/bin"
+
+LOG="{{ lima_city_log_dir }}/backup-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee -a "$LOG") 2>&1
+
+echo "PATH=$PATH"
+echo "which wp: $(command -v wp || echo NOT_FOUND)"
+echo "which php: $(command -v php || echo NOT_FOUND)"
+echo "which mysqldump: $(command -v mysqldump || echo NOT_FOUND)"
+
+STAGE=$(mktemp -d "{{ lima_city_tmp_dir }}/lima-city-stage.XXXXXX")
+trap 'rm -rf "$STAGE"' EXIT
+
+export RESTIC_REPOSITORY="sftp:{{ lima_city_storagebox_alias }}:."
+export RESTIC_PASSWORD_FILE="{{ lima_city_restic_pw_file }}"
+
+{% for site in lima_city_sites %}
+echo "=== Staging {{ site.name }} ==="
+mkdir -p "$STAGE/{{ site.name }}"
+cd "{{ site.wp_path }}"
+wp db export --single-transaction --skip-plugins --skip-themes - | gzip > "$STAGE/{{ site.name }}/db.sql.gz"
+tar \
+    --warning=no-file-changed \
+    --warning=no-file-removed \
+    -czf "$STAGE/{{ site.name }}/files.tar.gz" \
+    -C "{{ site.wp_path }}" . \
+    || [ $? -eq 1 ]
+{% endfor %}
+
+echo "=== Restic backup ==="
+{{ lima_city_restic_bin }} backup \
+    --host {{ lima_city_restic_host_tag }} \
+    --tag {{ lima_city_restic_host_tag }} \
+    "$STAGE"
+
+echo "=== Restic forget + prune ==="
+{{ lima_city_restic_bin }} forget \
+    --host {{ lima_city_restic_host_tag }} \
+    --tag {{ lima_city_restic_host_tag }} \
+    --group-by host,tags \
+    --keep-daily {{ lima_city_restic_keep_daily }} \
+    --keep-weekly {{ lima_city_restic_keep_weekly }} \
+    --keep-monthly {{ lima_city_restic_keep_monthly }} \
+    --prune
+
+find "{{ lima_city_log_dir }}" -name 'backup-*.log' -mtime +30 -delete
+
+echo "=== Done ==="

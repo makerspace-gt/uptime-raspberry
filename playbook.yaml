@@ -58,3 +58,5 @@
     - role: uptime-kuma
 
     - role: backup-sync
+
+    - role: backup-lima-city-trigger
