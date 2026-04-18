@@ -13,6 +13,7 @@
       - htop
       - ncdu
       - rsync
+      - jq
     state: present
 
 - name: Reduce SD card wear - disable swap
