@@ -52,9 +52,11 @@ print_section() {
     local -a durations=()
     local ok_count=0 fail_count=0
 
+    echo ""
     echo -e "${c_bold}── ${label} ──────────────────────────────────────────────────${c_reset}"
-    printf "  %-20s  %-8s  %-14s  %s\n" "Started" "Status" "Duration" "Details"
-    printf "  %-20s  %-8s  %-14s  %s\n" "-------" "------" "--------" "-------"
+    echo ""
+    printf "  ${c_dim}%-20s  %-8s  %-14s  %s${c_reset}\n" "Started" "Status" "Duration" "Details"
+    printf "  ${c_dim}%-20s  %-8s  %-14s  %s${c_reset}\n" "-------" "------" "--------" "-------"
 
     local found=0
     while IFS= read -r log; do
@@ -114,7 +116,7 @@ print_section() {
     done < <(find "$LOG_DIR" -name "${type}-*.log" -mtime -"$DAYS" | sort)
 
     if (( found == 0 )); then
-        echo "  (no logs found in last ${DAYS} days)"
+        echo -e "  ${c_dim}(no logs found in last ${DAYS} days)${c_reset}"
     fi
 
     # Statistics summary
@@ -127,7 +129,7 @@ print_section() {
         done
         local avg=$(( sum / ${#durations[@]} ))
         echo ""
-        echo -e "  ${c_bold}Stats (OK runs):${c_reset}  count=${ok_count}  min=$(fmt_duration $min)  avg=$(fmt_duration $avg)  max=$(fmt_duration $max)"
+        echo -e "  ${c_bold}Stats (OK runs):${c_reset}  ${c_ok}count=${ok_count}${c_reset}  min=$(fmt_duration $min)  avg=$(fmt_duration $avg)  max=$(fmt_duration $max)"
     fi
     (( fail_count > 0 )) && echo -e "  ${c_fail}Failed runs: ${fail_count}${c_reset}"
 
@@ -136,32 +138,62 @@ print_section() {
 
 echo ""
 echo -e "${c_bold}Backup Statistics — last ${DAYS} days${c_reset}"
-echo "Log directory: ${LOG_DIR}"
+echo -e "Log directory: ${c_dim}${LOG_DIR}${c_reset}"
+echo ""
 echo ""
 
 echo -e "${c_bold}── Repository contents (latest snapshot per host/tags) ──────────${c_reset}"
+echo ""
 RESTIC_PW=/opt/backup-sync/restic_password
 RESTIC_REPO=/mnt/backup
-if command -v restic >/dev/null 2>&1 && [ -r "$RESTIC_PW" ]; then
-    restic -r "$RESTIC_REPO" --password-file "$RESTIC_PW" \
-        snapshots --latest 1 --group-by host,tags --compact 2>/dev/null \
-        || echo "  (failed to query restic repo at $RESTIC_REPO)"
+if command -v restic >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 && [ -r "$RESTIC_PW" ]; then
+    json=$(restic -r "$RESTIC_REPO" --password-file "$RESTIC_PW" \
+        snapshots --latest 1 --group-by host,tags --json 2>/dev/null) \
+        || json=""
+    if [[ -n "$json" ]]; then
+        echo "$json" | jq -r '
+            .[] |
+            .group_key as $g |
+            .snapshots as $snaps |
+            ($snaps | length) as $count |
+            "GROUP:\($count) snapshot\(if $count != 1 then "s" else "" end) for \($g.hostname) [\($g.tags | join(", "))]",
+            ($snaps | sort_by(.time) | reverse | .[] |
+                "  \(.short_id // (.id | .[:8]))  \(.time | split(".")[0] | gsub("T";" "))  \(.paths | join(", "))"
+            ),
+            ""
+        ' 2>/dev/null | while IFS= read -r line; do
+            if [[ "$line" =~ ^GROUP: ]]; then
+                echo -e "  ${c_bold}${line#GROUP:}${c_reset}"
+            elif [[ -n "$line" ]]; then
+                echo -e "  ${c_dim}${line}${c_reset}"
+            else
+                echo ""
+            fi
+        done
+    else
+        echo -e "  ${c_warn}(failed to query restic repo at $RESTIC_REPO)${c_reset}"
+    fi
+elif ! command -v jq >/dev/null 2>&1; then
+    echo -e "  ${c_warn}(jq not installed — needed for snapshot formatting)${c_reset}"
 else
-    echo "  (restic or $RESTIC_PW unreadable — run this script as root)"
+    echo -e "  ${c_warn}(restic or $RESTIC_PW unreadable — run this script as root)${c_reset}"
 fi
-echo ""
 
 print_section "sync"  "rclone Sync"
 print_section "check" "restic Check"
 
+echo ""
 echo -e "${c_bold}── Timer status ──────────────────────────────────────────────────${c_reset}"
+echo ""
 systemctl list-timers backup-sync.timer backup-check.timer lima-city-backup.timer --no-pager 2>/dev/null || \
-    echo "  (systemctl not available or timers not found)"
+    echo -e "  ${c_warn}(systemctl not available or timers not found)${c_reset}"
+echo ""
 echo ""
 
 echo -e "${c_bold}── Last journal entries ──────────────────────────────────────────${c_reset}"
+echo ""
 journalctl -u backup-sync.service -u backup-check.service -u lima-city-backup.service \
     --since "$(date -d "-${DAYS} days" '+%Y-%m-%d')" \
     --no-pager -q --output=short-iso 2>/dev/null | tail -30 || \
-    echo "  (journal unavailable)"
+    echo -e "  ${c_warn}(journal unavailable)${c_reset}"
 echo ""
